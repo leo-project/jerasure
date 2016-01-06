@@ -56,15 +56,8 @@
 
 #define talloc(type, num) (type *) malloc(sizeof(type)*(num))
 
-int *reed_sol_r6_coding_matrix(int k, int w)
-{
-  int *matrix;
+inline int *reed_sol_r6_coding_matrix_setup(int k, int w, int *matrix) {
   int i, tmp;
-
-  if (w != 8 && w != 16 && w != 32) return NULL;
-
-  matrix = talloc(int, 2*k);
-  if (matrix == NULL) return NULL;
 
   for (i = 0; i < k; i++) matrix[i] = 1;
   matrix[k] = 1;
@@ -76,9 +69,38 @@ int *reed_sol_r6_coding_matrix(int k, int w)
   return matrix;
 }
 
-int *reed_sol_vandermonde_coding_matrix(int k, int m, int w)
+int *reed_sol_r6_coding_matrix(int k, int w)
+{
+  int *matrix;
+
+  if (w != 8 && w != 16 && w != 32) return NULL;
+
+  matrix = talloc(int, 2*k);
+  if (matrix == NULL) return NULL;
+
+  return reed_sol_r6_coding_matrix_setup(k, w, matrix);
+}
+
+int *reed_sol_r6_coding_matrix_noalloc(int k, int w, int *matrix)
+{
+  if (w != 8 && w != 16 && w != 32) return NULL;
+
+  return reed_sol_r6_coding_matrix_setup(k, w, matrix);
+}
+
+inline int *reed_sol_vandermonde_coding_matrix_setup(int k, int m, int w, int *dist, int *vdm) 
 {
   int i, j;
+  i = k*k;
+  for (j = 0; j < m*k; j++) {
+    dist[j] = vdm[i];
+    i++;
+  }
+  return dist;
+}
+
+int *reed_sol_vandermonde_coding_matrix(int k, int m, int w)
+{
   int *vdm, *dist;
 
   vdm = reed_sol_big_vandermonde_distribution_matrix(k+m, k, w);
@@ -88,14 +110,18 @@ int *reed_sol_vandermonde_coding_matrix(int k, int m, int w)
     free(vdm);
     return NULL;
   }
-
-  i = k*k;
-  for (j = 0; j < m*k; j++) {
-    dist[j] = vdm[i];
-    i++;
-  }
+  reed_sol_vandermonde_coding_matrix_setup(k, m, w, dist, vdm);
   free(vdm);
   return dist;
+}
+
+int *reed_sol_vandermonde_coding_matrix_noalloc(int k, int m, int w, int* matrix)
+{
+  int vdm[(k+m) * k];
+  int *ret = reed_sol_big_vandermonde_distribution_matrix_noalloc(k+m, k, w, vdm);
+  if (ret == NULL) return NULL;
+  reed_sol_vandermonde_coding_matrix_setup(k, m, w, matrix, vdm);
+  return matrix;
 }
 
 static int prim08 = -1;
@@ -173,17 +199,13 @@ int reed_sol_r6_encode(int k, int w, char **data_ptrs, char **coding_ptrs, int s
   return 1;
 }
 
-int *reed_sol_extended_vandermonde_matrix(int rows, int cols, int w)
+inline int *reed_sol_extended_vandermonde_matrix_setup(int rows, int cols, int w, int *vdm)
 {
-  int *vdm;
   int i, j, k;
 
   if (w < 30 && (1 << w) < rows) return NULL;
   if (w < 30 && (1 << w) < cols) return NULL;
 
-  vdm = talloc(int, rows*cols);
-  if (vdm == NULL) { return NULL; }
-  
   vdm[0] = 1;
   for (j = 1; j < cols; j++) vdm[j] = 0;
   if (rows == 1) return vdm;
@@ -203,15 +225,32 @@ int *reed_sol_extended_vandermonde_matrix(int rows, int cols, int w)
   return vdm;
 }
 
-int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
+int *reed_sol_extended_vandermonde_matrix(int rows, int cols, int w)
 {
-  int *dist;
+  int *vdm;
+
+  vdm = talloc(int, rows*cols);
+  if (vdm == NULL) { return NULL; }
+  int *ret = reed_sol_extended_vandermonde_matrix_setup(rows, cols, w, vdm);
+  if (ret == NULL) {
+    free(vdm);
+    return NULL;
+  }
+  return ret;
+}
+
+int *reed_sol_extended_vandermonde_matrix_noalloc(int rows, int cols, int w, int* vdm)
+{
+  return reed_sol_extended_vandermonde_matrix_setup(rows, cols, w, vdm);
+}
+
+inline int *reed_sol_big_vandermonde_distribution_matrix_setup(int rows, int cols, int w, int *dist)
+{
   int i, j, k;
   int sindex, srindex, siindex, tmp;
 
   if (cols >= rows) return NULL;
   
-  dist = reed_sol_extended_vandermonde_matrix(rows, cols, w);
   if (dist == NULL) return NULL;
 
   sindex = 0;
@@ -298,5 +337,20 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
   }
 
   return dist;
+}
+
+int *reed_sol_big_vandermonde_distribution_matrix_noalloc(int rows, int cols, int w, int* dist)
+{
+  int *ret = reed_sol_extended_vandermonde_matrix_noalloc(rows, cols, w, dist);
+  if (ret == NULL) return NULL;
+  return reed_sol_big_vandermonde_distribution_matrix_setup(rows, cols, w, dist);
+}
+
+int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
+{
+  int *dist;
+  dist = reed_sol_extended_vandermonde_matrix(rows, cols, w);
+  if (dist == NULL) return NULL;
+  return reed_sol_big_vandermonde_distribution_matrix_setup(rows, cols, w, dist);
 }
 
