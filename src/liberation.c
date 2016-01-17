@@ -54,13 +54,11 @@
 
 #define talloc(type, num) (type *) malloc(sizeof(type)*(num))
 
-int *liberation_coding_bitmatrix(int k, int w)
+int *liberation_coding_bitmatrix_setup(int k, int w, int *matrix)
 {
-  int *matrix, i, j, index;
+  int i, j, index;
 
   if (k > w) return NULL;
-  matrix = talloc(int, 2*k*w*w);
-  if (matrix == NULL) return NULL;
   bzero(matrix, sizeof(int)*2*k*w*w);
   
   /* Set up identity matrices */
@@ -89,6 +87,20 @@ int *liberation_coding_bitmatrix(int k, int w)
   return matrix;
 }
   
+int *liberation_coding_bitmatrix_noalloc(int k, int w, int *matrix)
+{
+  return liberation_coding_bitmatrix_setup(k, w, matrix);
+}
+
+int *liberation_coding_bitmatrix(int k, int w)
+{
+  int *matrix;
+  matrix = talloc(int, 2*k*w*w);
+  if (matrix == NULL) return NULL;
+  int *ret = liberation_coding_bitmatrix_setup(k, w, matrix);
+  if (ret == NULL) free(matrix);
+  return ret;
+}
 
 int *liber8tion_coding_bitmatrix(int k)
 {
