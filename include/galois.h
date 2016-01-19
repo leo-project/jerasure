@@ -47,7 +47,6 @@ extern "C" {
 #endif
 
 extern int galois_init_default_field(int w);
-extern int galois_init_default_field_noalloc(int w);
 extern int galois_uninit_field(int w);
 extern void galois_change_technique(gf_t *gf, int w);
 
