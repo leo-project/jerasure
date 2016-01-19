@@ -73,11 +73,11 @@ is the file name with "_k#" or "_m#" and then the extension.
 #include "liberation.h"
 #include "timing.h"
 
-#define N 10
+#define N 13
 
-enum Coding_Technique {Reed_Sol_Van, Reed_Sol_R6_Op, Cauchy_Orig, Cauchy_Good, Liberation, Blaum_Roth, Liber8tion, RDP, EVENODD, No_Coding};
+enum Coding_Technique {Reed_Sol_Van, Reed_Sol_Van_noalloc, Reed_Sol_R6_Op, Cauchy_Orig, Cauchy_Good, Cauchy_Good_noalloc, Liberation, Liberation_noalloc, Blaum_Roth, Liber8tion, RDP, EVENODD, No_Coding};
 
-char *Methods[N] = {"reed_sol_van", "reed_sol_r6_op", "cauchy_orig", "cauchy_good", "liberation", "blaum_roth", "liber8tion", "no_coding"};
+char *Methods[N] = {"reed_sol_van", "reed_sol_van_noalloc", "reed_sol_r6_op", "cauchy_orig", "cauchy_good", "cauchy_good_alloc", "liberation", "liberation_noalloc", "blaum_roth", "liber8tion", "rdp", "evenodd", "no_coding"};
 
 /* Global variables for signal handler */
 int readins, n;
@@ -147,7 +147,7 @@ int main (int argc, char **argv) {
 	/* Error check Arguments*/
 	if (argc != 8) {
 		fprintf(stderr,  "usage: inputfile k m coding_technique w packetsize buffersize\n");
-		fprintf(stderr,  "\nChoose one of the following coding techniques: \nreed_sol_van, \nreed_sol_r6_op, \ncauchy_orig, \ncauchy_good, \nliberation, \nblaum_roth, \nliber8tion");
+		fprintf(stderr,  "\nChoose one of the following coding techniques: \nreed_sol_van, \nreed_sol_van_noalloc,\nreed_sol_r6_op, \ncauchy_orig, \ncauchy_good, \ncauchy_good_noalloc, \nliberation, \nliberation_noalloc, \nblaum_roth, \nliber8tion");
 		fprintf(stderr,  "\n\nPacketsize is ignored for the reed_sol's");
 		fprintf(stderr,  "\nBuffersize of 0 means the buffersize is chosen automatically.\n");
 		fprintf(stderr,  "\nIf you just want to test speed, use an inputfile of \"-number\" where number is the size of the fake file you want to test.\n\n");
@@ -234,6 +234,13 @@ int main (int argc, char **argv) {
 			exit(0);
 		}
 	}
+	else if (strcmp(argv[4], "reed_sol_van_noalloc") == 0) {
+		tech = Reed_Sol_Van_noalloc;
+		if (w != 8 && w != 16 && w != 32) {
+			fprintf(stderr,  "w must be one of {8, 16, 32}\n");
+			exit(0);
+		}
+	}
 	else if (strcmp(argv[4], "reed_sol_r6_op") == 0) {
 		if (m != 2) {
 			fprintf(stderr,  "m must be equal to 2\n");
@@ -259,7 +266,14 @@ int main (int argc, char **argv) {
 			exit(0);
 		}
 	}
-	else if (strcmp(argv[4], "liberation") == 0) {
+	else if (strcmp(argv[4], "cauchy_good_noalloc") == 0) {
+		tech = Cauchy_Good_noalloc;
+		if (packetsize == 0) {
+			fprintf(stderr, "Must include packetsize.\n");
+			exit(0);
+		}
+	}
+	else if ((strcmp(argv[4], "liberation") == 0) || (strcmp(argv[4], "liberation_noalloc")==0)) {
 		if (k > w) {
 			fprintf(stderr,  "k must be less than or equal to w\n");
 			exit(0);
@@ -276,7 +290,10 @@ int main (int argc, char **argv) {
 			fprintf(stderr,  "packetsize must be a multiple of sizeof(long)\n");
 			exit(0);
 		}
-		tech = Liberation;
+		if (strcmp(argv[4], "liberation") == 0)
+			tech = Liberation;
+		else
+			tech = Liberation_noalloc;
 	}
 	else if (strcmp(argv[4], "blaum_roth") == 0) {
 		if (k > w) {
@@ -317,7 +334,7 @@ int main (int argc, char **argv) {
 		tech = Liber8tion;
 	}
 	else {
-		fprintf(stderr,  "Not a valid coding technique. Choose one of the following: reed_sol_van, reed_sol_r6_op, cauchy_orig, cauchy_good, liberation, blaum_roth, liber8tion, no_coding\n");
+		fprintf(stderr,  "Not a valid coding technique. Choose one of the following: reed_sol_van, reed_sol_van_noalloc, reed_sol_r6_op, cauchy_orig, cauchy_good, cauchy_good_noalloc, liberation, liberation_noalloc, blaum_roth, liber8tion, no_coding\n");
 		exit(0);
 	}
 
@@ -430,7 +447,13 @@ int main (int argc, char **argv) {
                 if (coding[i] == NULL) { perror("malloc"); exit(1); }
 	}
 
-	
+	int matrix_n[k*m];
+	int bitmatrix_n[k*m*w*w];
+	int smart_n[k*m*w*w+1][5];
+	int* smartptr[k*m*w*w+1];
+	for (i = 0; i < k*m*w*w+1; ++i) {
+		smartptr[i] = smart_n[i];
+	}
 
 	/* Create coding matrix or bitmatrix and schedule */
 	timing_set(&t3);
@@ -439,6 +462,9 @@ int main (int argc, char **argv) {
 			break;
 		case Reed_Sol_Van:
 			matrix = reed_sol_vandermonde_coding_matrix(k, m, w);
+			break;
+		case Reed_Sol_Van_noalloc:
+			matrix = reed_sol_vandermonde_coding_matrix_noalloc(k, m, w, matrix_n);
 			break;
 		case Reed_Sol_R6_Op:
 			break;
@@ -452,9 +478,18 @@ int main (int argc, char **argv) {
 			bitmatrix = jerasure_matrix_to_bitmatrix(k, m, w, matrix);
 			schedule = jerasure_smart_bitmatrix_to_schedule(k, m, w, bitmatrix);
 			break;	
+		case Cauchy_Good_noalloc:
+			matrix = cauchy_good_general_coding_matrix_noalloc(k, m, w, matrix_n);
+			bitmatrix = jerasure_matrix_to_bitmatrix_noalloc(k, m, w, matrix, bitmatrix_n);
+			schedule = jerasure_smart_bitmatrix_to_schedule_noalloc(k, m, w, bitmatrix, smartptr);
+			break;
 		case Liberation:
 			bitmatrix = liberation_coding_bitmatrix(k, w);
 			schedule = jerasure_smart_bitmatrix_to_schedule(k, m, w, bitmatrix);
+			break;
+		case Liberation_noalloc:
+			bitmatrix = liberation_coding_bitmatrix_noalloc(k, w, bitmatrix_n);
+			schedule = jerasure_smart_bitmatrix_to_schedule_noalloc(k, m, w, bitmatrix, smartptr);
 			break;
 		case Blaum_Roth:
 			bitmatrix = blaum_roth_coding_bitmatrix(k, w);
@@ -507,6 +542,7 @@ int main (int argc, char **argv) {
 			case No_Coding:
 				break;
 			case Reed_Sol_Van:
+			case Reed_Sol_Van_noalloc:
 				jerasure_matrix_encode(k, m, w, matrix, data, coding, blocksize);
 				break;
 			case Reed_Sol_R6_Op:
@@ -516,9 +552,11 @@ int main (int argc, char **argv) {
 				jerasure_schedule_encode(k, m, w, schedule, data, coding, blocksize, packetsize);
 				break;
 			case Cauchy_Good:
+			case Cauchy_Good_noalloc:
 				jerasure_schedule_encode(k, m, w, schedule, data, coding, blocksize, packetsize);
 				break;
 			case Liberation:
+			case Liberation_noalloc:
 				jerasure_schedule_encode(k, m, w, schedule, data, coding, blocksize, packetsize);
 				break;
 			case Blaum_Roth:
