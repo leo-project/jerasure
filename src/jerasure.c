@@ -388,7 +388,7 @@ int jerasure_matrix_decode_selected(int k, int m, int w, int *matrix, int row_k_
   return 0;
 }
 
-inline int *jerasure_matrix_to_bitmatrix_setup(int k, int m, int w, int *matrix, int *bitmatrix)
+static inline int *jerasure_matrix_to_bitmatrix_setup(int k, int m, int w, int *matrix, int *bitmatrix)
 {
   int rowelts, rowindex, colindex, elt, i, j, l, x;
 
@@ -662,7 +662,7 @@ int jerasure_invertible_matrix(int *mat, int rows, int w)
   return 1;
 }
 
-inline int *jerasure_erasures_to_erased_setup(int k, int m, int *erasures, int *erased)
+static inline int *jerasure_erasures_to_erased_setup(int k, int m, int *erasures, int *erased)
 {
   int td;
   int t_non_erased;
@@ -933,12 +933,12 @@ static inline char **set_up_ptrs_for_scheduled_decoding_setup(int k, int m, int 
   return ptrs;
 }
 
-static char **set_up_ptrs_for_scheduled_decoding_noalloc(int k, int m, int *erasures, char **data_ptrs, char **coding_ptrs, char **ptrs)
+static inline char **set_up_ptrs_for_scheduled_decoding_noalloc(int k, int m, int *erasures, char **data_ptrs, char **coding_ptrs, char **ptrs)
 {
   return set_up_ptrs_for_scheduled_decoding_setup(k, m, erasures, data_ptrs, coding_ptrs, ptrs);
 }
 
-static char **set_up_ptrs_for_scheduled_decoding(int k, int m, int *erasures, char **data_ptrs, char **coding_ptrs)
+static inline char **set_up_ptrs_for_scheduled_decoding(int k, int m, int *erasures, char **data_ptrs, char **coding_ptrs)
 {
   char** ptrs = talloc(char *, k+m);
   if (!ptrs) return NULL;
