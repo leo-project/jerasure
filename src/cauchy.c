@@ -128,7 +128,7 @@ int cauchy_n_ones(int n, int w)
   return no;
 }
   
-inline int *cauchy_original_coding_matrix_setup(int k, int m, int w, int *matrix)
+static inline int *cauchy_original_coding_matrix_setup(int k, int m, int w, int *matrix)
 {
   int i, j, index;
 
@@ -160,7 +160,7 @@ int *cauchy_original_coding_matrix_noalloc(int k, int m, int w, int *matrix)
   return cauchy_original_coding_matrix_setup(k, m, w, matrix);
 }
 
-inline int *cauchy_xy_coding_matrix_setup(int k, int m, int w, int *X, int *Y, int *matrix)
+static inline int *cauchy_xy_coding_matrix_setup(int k, int m, int w, int *X, int *Y, int *matrix)
 {
   int index, i, j;
 
@@ -232,7 +232,7 @@ void cauchy_improve_coding_matrix(int k, int m, int w, int *matrix)
   }
 }
 
-inline int *cauchy_good_general_coding_matrix_setup(int k, int m, int w, int *matrix)
+static inline int *cauchy_good_general_coding_matrix_setup(int k, int m, int w, int *matrix)
 {
   int i;
 

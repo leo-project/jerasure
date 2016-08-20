@@ -56,7 +56,7 @@
 
 #define talloc(type, num) (type *) malloc(sizeof(type)*(num))
 
-inline int *reed_sol_r6_coding_matrix_setup(int k, int w, int *matrix) {
+static inline int *reed_sol_r6_coding_matrix_setup(int k, int w, int *matrix) {
   int i, tmp;
 
   for (i = 0; i < k; i++) matrix[i] = 1;
@@ -88,7 +88,7 @@ int *reed_sol_r6_coding_matrix_noalloc(int k, int w, int *matrix)
   return reed_sol_r6_coding_matrix_setup(k, w, matrix);
 }
 
-inline int *reed_sol_vandermonde_coding_matrix_setup(int k, int m, int w, int *dist, int *vdm) 
+static inline int *reed_sol_vandermonde_coding_matrix_setup(int k, int m, int w, int *dist, int *vdm) 
 {
   int i, j;
   i = k*k;
@@ -199,7 +199,7 @@ int reed_sol_r6_encode(int k, int w, char **data_ptrs, char **coding_ptrs, int s
   return 1;
 }
 
-inline int *reed_sol_extended_vandermonde_matrix_setup(int rows, int cols, int w, int *vdm)
+static inline int *reed_sol_extended_vandermonde_matrix_setup(int rows, int cols, int w, int *vdm)
 {
   int i, j, k;
 
@@ -244,7 +244,7 @@ int *reed_sol_extended_vandermonde_matrix_noalloc(int rows, int cols, int w, int
   return reed_sol_extended_vandermonde_matrix_setup(rows, cols, w, vdm);
 }
 
-inline int *reed_sol_big_vandermonde_distribution_matrix_setup(int rows, int cols, int w, int *dist)
+static inline int *reed_sol_big_vandermonde_distribution_matrix_setup(int rows, int cols, int w, int *dist)
 {
   int i, j, k;
   int sindex, srindex, siindex, tmp;
